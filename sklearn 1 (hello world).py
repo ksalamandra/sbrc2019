@@ -35,6 +35,7 @@ print("predito KNN:", knn.predict(X_test))
 print("predito GNB:", gnb.predict(X_test))
 print("predito KME:", k_means.predict(X_test))
 
+print("teste pull-push")
 
 
 
