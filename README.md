@@ -2,4 +2,6 @@
 Meu estudo de machine learning
 -------------------------------------
 
-sklearn -> biblioteca com várias implementações de models prontos
+SETUP Mininet + Ryu
+
+Ryu no ubuntu do windows + VM no virtual box com mininet (foi onde consegui a melhor performance)
