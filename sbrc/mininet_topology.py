@@ -26,22 +26,21 @@ class Project(Topo):
         self.addLink(h3, s1, cls=TCULink)
 
 
+
 if __name__ == '__main__':
     setLogLevel('info')
     topo = Project()
     net = Mininet(
         topo=topo,
-        controller=lambda name: RemoteController(name, ip='192.168.0.16'),
+        controller=lambda name: RemoteController(name, ip='192.168.56.1'),
         switch=UserSwitch,
         autoSetMacs=True,
-        link=TCULink,
     )
     net.start()
     try:
         print("variando...")
-        #server = net.getNodeByName('server')
-        #Intf('eth2', server)
-        #server.cmdPrint("dhclient eth2")
+        server = net.getNodeByName('h2')
+        server.cmdPrint("ifconfig enp0s3:2 192.168.0.30")
     except Exception as e:
         print("Houve um erro, stopando...", str(e))
         net.stop()
@@ -52,3 +51,4 @@ if __name__ == '__main__':
 topos = {
     'mytopo': Project
 }
+
