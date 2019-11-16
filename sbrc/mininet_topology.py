@@ -24,14 +24,6 @@ class Project(Topo):
         self.addLink(h1, s1, cls=TCULink)
         self.addLink(h2, s1, cls=TCULink)
         self.addLink(h3, s1, cls=TCULink)
-        #self.addLink(self.c2, self.s1)
-        #self.addLink(self.c3, self.s1)
-        #self.addLink(self.c4, self.s1)
-        #self.addLink(self.c5, self.s1)
-        #self.addLink(self.c6, self.s1)
-
-        # init
-        #h1.cmdPrint("ping 10.0.0.2")
 
 
 if __name__ == '__main__':
@@ -42,6 +34,7 @@ if __name__ == '__main__':
         controller=lambda name: RemoteController(name, ip='192.168.0.16'),
         switch=UserSwitch,
         autoSetMacs=True,
+        link=TCULink,
     )
     net.start()
     try:

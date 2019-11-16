@@ -16,8 +16,8 @@ SETUP Mininet + Ryu (foi como consegui a melhor performance)
  
 Roda o ryu (Ubuntu no windows) com:
  
-    %  ryu-manager app/gui_topology/gui_topology.py ryu_test.py --observe-links
+    %  sudo ryu-manager app/gui_topology/gui_topology.py controller.py --observe-links
     
 E a topologia do mininet (VM) com: 
 
-    %  sudo mn --custom paper_topo.py --topo papertopo --controller remote,ip=<IP do hospedeiro>
+    %  sudo python mininet_topology.py
