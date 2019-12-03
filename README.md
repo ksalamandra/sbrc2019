@@ -1,5 +1,5 @@
 # Machine-learning-study
-Meu estudo de machine learning
+## Meu estudo de machine learning
 -------------------------------------
 
 SETUP Mininet + Ryu (foi como consegui a melhor performance)
@@ -16,7 +16,7 @@ SETUP Mininet + Ryu (foi como consegui a melhor performance)
  
 Roda o ryu (Ubuntu no windows) com:
  
-    %  sudo ryu-manager app/gui_topology/gui_topology.py controller.py --observe-links
+    ````  sudo ryu-manager app/gui_topology/gui_topology.py throttling.py --observe-links
     
 E a topologia do mininet (VM) com: 
 
