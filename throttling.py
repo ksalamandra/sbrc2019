@@ -49,14 +49,18 @@ class SimpleSwitch13(app_manager.RyuApp):
         # add rule for metering in s1
         print ("dpid: ", ev.msg.datapath.id)
         if ev.msg.datapath.id == 1:
-            print("deu match")
             datapath = ev.msg.datapath
             ofproto = datapath.ofproto
             parser = datapath.ofproto_parser
+
+            # meter 1
             bands = [parser.OFPMeterBandDrop(type_=ofproto.OFPMBT_DROP, len_=0, rate=300, burst_size=10)]
             req = parser.OFPMeterMod(datapath=datapath, command=ofproto.OFPMC_ADD, flags=ofproto.OFPMF_KBPS, meter_id=1,
                                      bands=bands)
             datapath.send_msg(req)
+
+
+            # applying meter 1
             match = parser.OFPMatch(eth_type=0x0800, ipv4_dst="10.0.0.2")
             actions = [parser.OFPActionOutput(2)]
             inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions),
@@ -66,7 +70,24 @@ class SimpleSwitch13(app_manager.RyuApp):
                 command=ofproto.OFPFC_ADD, idle_timeout=0,
                 hard_timeout=0, priority=3, instructions=inst)
             datapath.send_msg(mod)
+            '''
+            # meter 2
+            bands = [parser.OFPMeterBandDrop(type_=ofproto.OFPMBT_DROP, len_=0, rate=500, burst_size=10)]
+            req = parser.OFPMeterMod(datapath=datapath, command=ofproto.OFPMC_ADD, flags=ofproto.OFPMF_KBPS, meter_id=2,
+                                     bands=bands)
+            datapath.send_msg(req)
 
+            # applying meter 2
+            match = parser.OFPMatch(eth_type=0x0800, ipv4_dst="10.0.0.3")
+            actions = [parser.OFPActionOutput(2)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions),
+                    parser.OFPInstructionMeter(2, ofproto.OFPIT_METER)]
+            mod = datapath.ofproto_parser.OFPFlowMod(
+                datapath=datapath, match=match, cookie=0,
+                command=ofproto.OFPFC_ADD, idle_timeout=0,
+                hard_timeout=0, priority=3, instructions=inst)
+            datapath.send_msg(mod)
+            '''
     def add_flow(self, datapath, priority, match, actions, buffer_id=None):
 
         ofproto = datapath.ofproto
