@@ -48,11 +48,12 @@ class SimpleSwitch13(app_manager.RyuApp):
 
         # add rule for metering in s1
         print ("dpid: ", ev.msg.datapath.id)
+        '''
         if ev.msg.datapath.id == 1:
             datapath = ev.msg.datapath
             ofproto = datapath.ofproto
             parser = datapath.ofproto_parser
-
+            
             # meter 1
             bands = [parser.OFPMeterBandDrop(type_=ofproto.OFPMBT_DROP, len_=0, rate=300, burst_size=10)]
             req = parser.OFPMeterMod(datapath=datapath, command=ofproto.OFPMC_ADD, flags=ofproto.OFPMF_KBPS, meter_id=1,
@@ -70,7 +71,7 @@ class SimpleSwitch13(app_manager.RyuApp):
                 command=ofproto.OFPFC_ADD, idle_timeout=0,
                 hard_timeout=0, priority=3, instructions=inst)
             datapath.send_msg(mod)
-            '''
+            
             # meter 2
             bands = [parser.OFPMeterBandDrop(type_=ofproto.OFPMBT_DROP, len_=0, rate=500, burst_size=10)]
             req = parser.OFPMeterMod(datapath=datapath, command=ofproto.OFPMC_ADD, flags=ofproto.OFPMF_KBPS, meter_id=2,
