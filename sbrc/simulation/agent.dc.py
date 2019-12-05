@@ -18,8 +18,8 @@ class Agent(object):
         self.dc = dc
 
         "Ambiente"
-        self.ACTION_SPACE = 1000  # 0 to 1000 Kbps
-        self.OSERVATION_SPACE = len(self.action_map(_range=_range))  # Increase or decrease
+        self.ACTION_SPACE = len(self.action_map(_range=_range))  # 0 to 1000 Kbps
+        self.OSERVATION_SPACE = 10 # Increase or decrease
 
         "Rest API info"
         self.GET_URL = _get_url
@@ -97,6 +97,7 @@ class Agent(object):
         # Server Overload [DC]
         for client in self.clients:
             current_server_load += client.new_nbw
+        self.dc.load = current_server_load
         if current_server_load >= self.dc.cap:
             reward = len(self.clients)*-10
 
@@ -110,34 +111,15 @@ class Agent(object):
         return reward
 
     def get_current_state(self):
-        response = requests.get(url=self.GET_URL).json()
-        drop_rate = response['1'][0]['bands'][0]["rate"]
-        return drop_rate
+        return int(self.dc.load/(self.dc.cap/self.ACTION_SPACE))
 
-    def set_new_drop_rate(self, action):
+    def do_action(self, action):
         increase_by = self.actions[action]
         self.state = self.get_current_state()
-        new_rate = self.state + increase_by
-        response = requests.post(
-            url=self.SET_URL,
-            data=json.dumps(dict(
-                dpid=1,
-                meter_id=1,
-                flags="KBPS",
-                bands=[
-                    dict(
-                        type="DROP",
-                        rate=new_rate,
-                    )
-                ]
-            ))
-        )
-        if response.status_code == 200:
-            self.old_state = self.state
-            self.old_action = action
-            self.state = self.get_current_state()
-        else:
-            raise Exception(f"Unreachable URL: {self.SET_URL}")
+        for client in clients:
+            client.sum_rate(increase_by)
+        self.state = self.get_current_state()
+
 
     def sample_action(self):
         """Toma uma decisão aleatoriamente (descobre)"""
@@ -171,7 +153,9 @@ class Agent(object):
 
     def step(self, server_load, legit_traffic_percentage_increase, total_legit_percent):
         """O agente toma uma ação baseado no que aprendeu, com certa ganancia de apredizado, e verifica a efetividade de sua ultima decisão"""
-        self.dump_data(server_load, total_legit_percent)
+        #self.dump_data(server_load, total_legit_percent)
+
+        # a ação precisa ser escolhida várias vezes em um único episódio
         if random.uniform(0, 1) < self.EPSILON:
             action = self.sample_action()  # Explore action space
         else:
@@ -179,13 +163,16 @@ class Agent(object):
 
         if self.old_state > 0:
             # Atualiza a Q-Table -> Aprendizado
-            reward = self.get_reward(server_load, legit_traffic_percentage_increase)
+            reward = self.get_reward()
             next_state = self.state + self.actions[action]
             next_max = np.argmax(self.q_table[next_state-1])
             old_value = self.q_table[self.old_state-1][self.old_action]
             new_value = (1 - self.ALPHA) * old_value + self.ALPHA * (reward + self.GAMMA * next_max)
             self.q_table[self.old_state - 1][self.old_action] = new_value
-        self.set_new_drop_rate(action)
+
+        # tomar a ação vetorial
+        self.do_action(action)
+
         print(self.state)
 
 clients = []
