@@ -1,4 +1,4 @@
-from ryuapi import RyuApi
+from .ryuapi import RyuApi
 
 class Client:
     def __init__(self, id, bw, dc=1):
@@ -24,7 +24,7 @@ class Client:
         self.rapi.add_flow(self.dpid, self.id, self.id)
 
     def get_rate(self):
-        return self.rapi.get_meter(self.dpid, self.id)
+        return int(self.rapi.get_meter(self.dpid, self.id))
 
     def set_rate(self, rate):
         self.rapi.change_meter(self.dpid, self.id, rate)
@@ -33,12 +33,18 @@ class Client:
         return self.nbw
 
     def get_gain1(self):
-        return abs(self.new_nbw - self.bw)/self.nbw_bw
+        try:
+            return abs(self.new_nbw - self.bw)/self.nbw_bw
+        except ZeroDivisionError:
+            return 1
 
     def get_gain2(self):
-        return abs(self.new_nbw - self.get_rate()) / self.nbw_rate
+        try:
+            return abs(self.new_nbw - self.get_rate()) / self.nbw_rate
+        except ZeroDivisionError:
+            return 1
 
-    def atualize(self):
+    def update(self):
         self.nbw = self.new_nbw
         self.nbw_rate = abs(self.nbw - self.get_rate())
         self.nbw_bw = abs(self.nbw - self.bw)
@@ -47,7 +53,7 @@ class Client:
         self.rapi.change_meter(self.dpid, self.id, int(self.t_rate()) + num)
 
     def set_nbw(self, nbw):
-        self.new_nbw = nbw
+        self.new_nbw = int(nbw)
         
 
 

@@ -4,7 +4,7 @@ import numpy as np
 import requests
 import json
 import random
-import models
+from . import models
 import paramiko
 import time
 
@@ -19,7 +19,7 @@ class Agent(object):
 
         "Ambiente"
         self.ACTION_SPACE = len(self.action_map(_range=_range))  # 0 to 1000 Kbps
-        self.OSERVATION_SPACE = 10 # Increase or decrease
+        self.OSERVATION_SPACE = 20 # Increase or decrease
 
         "Rest API info"
         self.GET_URL = _get_url
@@ -111,7 +111,10 @@ class Agent(object):
         return reward
 
     def get_current_state(self):
-        return int(self.dc.load/(self.dc.cap/self.ACTION_SPACE))
+        state = int(self.dc.load/(self.dc.cap/self.OSERVATION_SPACE))
+        if state > self.OSERVATION_SPACE:
+            return self.OSERVATION_SPACE + 1
+        return state
 
     def do_action(self, action):
         increase_by = self.actions[action]
@@ -175,14 +178,15 @@ class Agent(object):
 
         print(self.state)
 
-clients = []
-clients.append(models.Client(id=16, bw=500))
-dc = models.DC(cap=2000)
 
-agent = Agent(clients=clients, dc=dc)
-while 1:
-    agent.check_nbw()
-    time.sleep(1)
+if __name__ == "__main__":
+    from sbrc.simulation import models, agent_dc
+    clients = []
+    clients.append(models.Client(2, 500))
+    dc = models.DC(cap=200000)
+    agent = agent_dc.Agent(clients=clients, dc=dc)
+    agent.get_reward()
+    agent.get_client(2).new_nbw
 
 
 
