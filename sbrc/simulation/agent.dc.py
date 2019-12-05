@@ -4,11 +4,18 @@ import numpy as np
 import requests
 import json
 import random
+import models
+import paramiko
+import time
 
 
 class Agent(object):
-    def __init__(self, _get_url = "http://127.0.0.1:8080/stats/meterconfig/1", _set_url="http://127.0.0.1:8080/stats/meterentry/modify", _range=2):
+    def __init__(self, _get_url = "http://127.0.0.1:8080/stats/meterconfig/1", _set_url="http://127.0.0.1:8080/stats/meterentry/modify", _range=2, clients=tuple(), dc=models.DC(cap=2000)):
         """ Agente """
+
+        "Nodes"
+        self.clients = clients
+        self.dc = dc
 
         "Ambiente"
         self.ACTION_SPACE = 1000  # 0 to 1000 Kbps
@@ -17,6 +24,9 @@ class Agent(object):
         "Rest API info"
         self.GET_URL = _get_url
         self.SET_URL = _set_url
+
+        "Server ip"
+        self.SERVER_IP = '192.168.0.22'
 
         "Modelagem das recompensas"
         self.MAX_SERVER_LOAD = 30000  # Max msg/seg
@@ -35,6 +45,39 @@ class Agent(object):
         self.server_loads = []
         self.legit_traffics = []
 
+    def get_conn(self):
+        conn = paramiko.SSHClient()
+        conn.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        conn.connect(hostname=self.SERVER_IP, username="root", password="ubuntu")
+        self.conn = conn
+
+    def check_conn(self):
+        if not getattr(self, "conn", False):
+            return self.get_conn()
+        if self.conn.get_transport() is not None:
+            if self.conn.get_transport().is_active():
+                return True
+        return self.get_conn()
+
+    def check_nbw(self):
+        self.check_conn()
+        stdin, stdout, stderr = self.conn.exec_command('cat /tmp/test.txt')
+        report = stdout.read().decode('utf-8')
+        for i in report.splitlines():
+            if i:
+                src = i.split(',')[3]
+                bw = i.split(',')[8]
+                client = self.get_client(src.split('.')[-1])
+                if client is not None:
+                    client.set_nbw(bw)
+        self.conn.exec_command('echo "" > /tmp/test.txt')
+
+    def get_client(self, id):
+        for c in self.clients:
+            if str(c.id) == str(id):
+                return c
+
+
     def action_map(self, _range=1):
         self.actions = set()
         for i in range(_range):
@@ -43,12 +86,28 @@ class Agent(object):
         self.actions = tuple(self.actions)
         return self.actions
 
-    def get_reward(self, server_load, legit_traffic_percentage_increase):
+    def get_reward(self):
         """ recuperar a recompensa para uma mudança de estado """
-        if server_load > self.MAX_SERVER_LOAD:
-            return -10
-        else:
-            return legit_traffic_percentage_increase*1
+
+        self.check_nbw()
+        current_server_load = 0
+        server_overload = 0
+        reward = 0
+
+        # Server Overload [DC]
+        for client in self.clients:
+            current_server_load += client.new_nbw
+        if current_server_load >= self.dc.cap:
+            reward = len(self.clients)*-10
+
+        # Clients band [HClients]
+        for client in self.clients:
+            gain1 = 1 + client.get_gain1()
+            gain2 = 1 + client.get_gain2()
+            reward += gain1 + gain2
+            client.update()
+
+        return reward
 
     def get_current_state(self):
         response = requests.get(url=self.GET_URL).json()
@@ -129,28 +188,38 @@ class Agent(object):
         self.set_new_drop_rate(action)
         print(self.state)
 
-agent = Agent()
-old_legit_percent = 10
-for i in range(1000):
-    print("EPOCH:" + str(i))
-    server_load = random.randrange(20000, 50000)
-    legit_traffic_percentage_increase = random.randrange(-20, 20)
-    total_legit_percent = old_legit_percent + legit_traffic_percentage_increase
-    agent.step(server_load, legit_traffic_percentage_increase, total_legit_percent)
-    old_legit_percent = total_legit_percent
+clients = []
+clients.append(models.Client(id=16, bw=500))
+dc = models.DC(cap=2000)
 
-my_str = "<table><tbody>"
-for i in agent.q_table:
-    my_str += "<tr>"
-    for j in i:
-        my_str += "<td>"
-        my_str += str(j)
-        my_str += "</td>"
-    my_str += "</tr>"
-my_str += '</tbody></table>'
-file = open("output.html", "w+")
-file.write(my_str)
-file.close()
+agent = Agent(clients=clients, dc=dc)
+while 1:
+    agent.check_nbw()
+    time.sleep(1)
+
+
+
+#old_legit_percent = 10
+#for i in range(1000):
+#    print("EPOCH:" + str(i))
+#    server_load = random.randrange(20000, 50000)
+#    legit_traffic_percentage_increase = random.randrange(-20, 20)
+#    total_legit_percent = old_legit_percent + legit_traffic_percentage_increase
+#    agent.step(server_load, legit_traffic_percentage_increase, total_legit_percent)
+#    old_legit_percent = total_legit_percent
+
+#my_str = "<table><tbody>"
+#for i in agent.q_table:
+#    my_str += "<tr>"
+#    for j in i:
+#        my_str += "<td>"
+#        my_str += str(j)
+#        my_str += "</td>"
+#    my_str += "</tr>"
+#my_str += '</tbody></table>'
+#file = open("output.html", "w+")
+#ile.write(my_str)
+#file.close()
 
 
 
