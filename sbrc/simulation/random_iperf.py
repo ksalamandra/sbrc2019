@@ -3,8 +3,6 @@ import random
 import numpy as np
 import time
 
-
-
 while 1:
     speed = random.randint(1, 200)
     #speed = np.random.poisson(8000, 20)
